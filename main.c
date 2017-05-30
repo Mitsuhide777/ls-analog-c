@@ -26,14 +26,15 @@ char* concat(const char *s1, const char *s2)
 
 void printInfo(char path[], struct dirent* ent)
 {
+	// for invisible files
 	if (ent->d_name[0] == '.')
 		return;
 
-	struct stat fileStat;
-	struct stat outputStream;
+	struct stat fileStat; // for state of a file
+	struct stat outputStream; // to check whether output stream is terminal or not
 
-	struct passwd *pwd;
-	struct group *grp;
+	struct passwd *pwd; // to get user name
+	struct group *grp; // to get group name
 
 	lstat(concat(path, ent->d_name), &fileStat);
 	int isOk = fstat(fileno(stdout), &outputStream);
@@ -44,6 +45,7 @@ void printInfo(char path[], struct dirent* ent)
 		return;
 	}
 
+    // File types:
 	if (S_ISDIR(fileStat.st_mode))
 		printf("d");
 	else if (S_ISLNK(fileStat.st_mode))
@@ -59,6 +61,7 @@ void printInfo(char path[], struct dirent* ent)
 	else
 		printf("-");
 
+    // Permissions:
     printf( (fileStat.st_mode & S_IRUSR) ? "r" : "-");
     printf( (fileStat.st_mode & S_IWUSR) ? "w" : "-");
     printf( (fileStat.st_mode & S_IXUSR) ? "x" : "-");
@@ -69,20 +72,25 @@ void printInfo(char path[], struct dirent* ent)
     printf( (fileStat.st_mode & S_IWOTH) ? "w" : "-");
     printf( (fileStat.st_mode & S_IXOTH) ? "x" : "-");
 
+    // Number of hard links:
     printf("  %2lu", fileStat.st_nlink);
 
+    // User name:
     if ((pwd = getpwuid(fileStat.st_uid)) != NULL)
 		printf("  %s", pwd->pw_name);
 	else
 		printf("  %d", fileStat.st_uid);
-	
+
+	//Group name:
 	if ((grp = getgrgid(fileStat.st_gid)) != NULL)
 		printf("  %s", grp->gr_name);
 	else
 		printf("  %d", fileStat.st_gid);
 
+    // File size:
     printf("  %6ld", fileStat.st_size);
 
+    // All to print shorter date:
     struct tm* timeInfo;
     timeInfo = localtime(&fileStat.st_mtime);
 
@@ -109,6 +117,7 @@ void printInfo(char path[], struct dirent* ent)
     printf("  %02d %s %02d:%02d  ", timeInfo->tm_mday, month,
     	timeInfo->tm_hour, timeInfo->tm_min);
 
+    // To print path to the real file, if working with a link
     if (S_ISLNK(fileStat.st_mode))
     {
     	char link_path[PATH_MAX];
@@ -117,6 +126,7 @@ void printInfo(char path[], struct dirent* ent)
     	if (length != -1)
     		link_path[length] = '\0';
 
+        // Also if output stream is terminal, paint it
     	if (S_ISCHR(outputStream.st_mode))
     	{
     		printf(TEXT_STYLE_LINK "%s" TEXT_STYLE_RESET, ent->d_name);
@@ -127,6 +137,7 @@ void printInfo(char path[], struct dirent* ent)
     }
     else
     {
+    	// If output stream is terminal, paint it
     	if (S_ISDIR(fileStat.st_mode) && S_ISCHR(outputStream.st_mode))
     		printf(TEXT_STYLE_DIR "%s\n" TEXT_STYLE_RESET, ent->d_name);
     	else
@@ -148,11 +159,7 @@ void read2(char path[])
 
 	while ((ent = readdir(dir)) != NULL)
 	{
-		// struct stat* buf;
-		// lstat(ent->d_name, buf);
-		// printf("%s\n", );
 		printInfo(path, ent);
-		//char* full_name = concat(path, ent->dname);
 	}
 	closedir(dir);
 }
